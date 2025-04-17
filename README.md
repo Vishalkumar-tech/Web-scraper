@@ -19,11 +19,6 @@ beautifulsoup4
 pandas
 re (Python's built-in regex module)
 
-✨ Sample Output (Preview)
-Rank	Name	Industry	Revenue (USD millions)	Employees	Headquarters Location
-1	Walmart	Retail	611,289	2,100,000	Bentonville, Arkansas
-2	Amazon	Retail	513,983	1,540,000	Seattle, Washington
-
 📚 Learnings
 Web scraping using BeautifulSoup and requests
 Parsing and cleaning HTML tables
