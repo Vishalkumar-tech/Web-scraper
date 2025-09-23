@@ -89,3 +89,241 @@ with pd.ExcelWriter(excel_file, engine="openpyxl") as writer:
         df_filtered.to_excel(writer, sheet_name="Filtered_Data", index=False)
 
 print(f"✅ Extracted required keywords from all PDFs and saved to {excel_file}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#convert
+
+
+import pandas as pd
+from bs4 import BeautifulSoup
+
+# Your HTML file path
+html_file = r"C:\Users\Vishal\OneDrive\Desktop\Jk tyres\output_with_tables.html"
+excel_file = r"C:\Users\Vishal\OneDrive\Desktop\Jk tyres\selected_tds.xlsx"
+
+# Open HTML with BeautifulSoup
+with open(html_file, "r", encoding="utf-8") as f:
+    soup = BeautifulSoup(f, "html.parser")
+
+# Extract all tables into DataFrames
+all_tables = []
+for idx, table in enumerate(soup.find_all("table"), start=1):
+    rows = []
+    for row in table.find_all("tr"):
+        cells = [cell.get_text(strip=True) for cell in row.find_all("td")]
+        if cells:
+            rows.append(cells)
+    df = pd.DataFrame(rows)
+    all_tables.append(df)
+
+print(f"Found {len(all_tables)} tables in the HTML file.")
+
+# 🔹 Define your targets (table_number, row_index, col_index)
+# Note: table_number is 1-based, row/col indexes are 0-based
+targets = [
+    (3, 2, 1),   # Table 3, Row 3, Col 2
+    (4, 1, 0),   # Table 4, Row 2, Col 1
+    (5, 0, 0),   # Table 5, Row 1, Col 1
+    (8, 1, 2)    # Table 8, Row 2, Col 3
+]
+
+# Collect results
+results = []
+for (table_num, row_idx, col_idx) in targets:
+    table_index = table_num - 1  # convert to 0-based index
+    if 0 <= table_index < len(all_tables):
+        df = all_tables[table_index]
+        if row_idx < len(df) and col_idx < len(df.columns):
+            value = df.iat[row_idx, col_idx]
+            results.append([f"Table {table_num}", row_idx+1, col_idx+1, value])
+        else:
+            results.append([f"Table {table_num}", row_idx+1, col_idx+1, "Invalid Row/Column"])
+    else:
+        results.append([f"Table {table_num}", row_idx+1, col_idx+1, "Invalid Table"])
+
+# Convert results into a DataFrame
+results_df = pd.DataFrame(results, columns=["Table", "Row", "Column", "Value"])
+
+# Save to Excel
+results_df.to_excel(excel_file, sheet_name="Selected_TDs", index=False)
+print(f"Selected <td> values saved to {excel_file}")
+
+
+
+
+
+
+
+#change name of excel
+
+import pandas as pd
+from bs4 import BeautifulSoup
+
+# Your HTML file path
+html_file = r"C:\Users\Vishal\OneDrive\Desktop\Jk tyres\output_with_tables.html"
+excel_file = r"C:\Users\Vishal\OneDrive\Desktop\Jk tyres\selected_tables.xlsx"
+
+# Open HTML with BeautifulSoup
+with open(html_file, "r", encoding="utf-8") as f:
+    soup = BeautifulSoup(f, "html.parser")
+
+# Extract all tables
+all_tables = []
+for idx, table in enumerate(soup.find_all("table"), start=1):
+    rows = []
+    for row in table.find_all("tr"):
+        cells = [cell.get_text(strip=True) for cell in row.find_all("td")]
+        if cells:
+            rows.append(cells)
+    df = pd.DataFrame(rows)
+    all_tables.append(df)
+
+print(f"Found {len(all_tables)} tables in the HTML file.")
+
+# 🔹 Choose which tables you want (1-based index)
+selected_indexes = [3, 4, 5, 8]   # <-- change here anytime
+
+# Convert to 0-based index for Python
+selected_indexes = [i-1 for i in selected_indexes]
+
+# 🔹 Define custom column names (optional)
+custom_headers = {
+    3: ["Product", "Size", "Price", "Stock"],      # for Table 3
+    4: ["ID", "Description", "Quantity"],          # for Table 4
+    5: ["Tyre_Model", "Category", "Rating"],       # for Table 5
+    # 8: ["Your", "Custom", "Headings", "Here"]    # for Table 8
+}
+
+# Collect selected tables
+selected_dfs = []
+for idx in selected_indexes:
+    if 0 <= idx < len(all_tables):
+        df = all_tables[idx].copy()
+        df.insert(0, "Table_Number", idx+1)  # add table number as first column
+
+        # Apply custom headers if defined
+        if (idx+1) in custom_headers:
+            df.columns = ["Table_Number"] + custom_headers[idx+1]
+
+        selected_dfs.append(df)
+    else:
+        print(f"Table {idx+1} does not exist, skipping.")
+
+# ✅ Combine into one sheet
+if selected_dfs:
+    final_df = pd.concat(selected_dfs, ignore_index=True)
+    final_df.to_excel(excel_file, sheet_name="Selected_Tables", index=False)
+    print(f"Selected tables saved to {excel_file}")
+else:
+    print("No valid tables selected.")
+
+
+
+
+
+#change the TD
+
+
+import pandas as pd
+from bs4 import BeautifulSoup
+
+# Your HTML file path
+html_file = r"C:\Users\Vishal\OneDrive\Desktop\Jk tyres\output_with_tables.html"
+excel_file = r"C:\Users\Vishal\OneDrive\Desktop\Jk tyres\custom_selection.xlsx"
+
+# Open HTML with BeautifulSoup
+with open(html_file, "r", encoding="utf-8") as f:
+    soup = BeautifulSoup(f, "html.parser")
+
+# Extract all tables into DataFrames
+all_tables = []
+for idx, table in enumerate(soup.find_all("table"), start=1):
+    rows = []
+    for row in table.find_all("tr"):
+        cells = [cell.get_text(strip=True) for cell in row.find_all("td")]
+        if cells:
+            rows.append(cells)
+    df = pd.DataFrame(rows)
+    all_tables.append(df)
+
+print(f"Found {len(all_tables)} tables in the HTML file.")
+
+# 🔹 Define your selections:
+# Format: (table_number, row_index, col_index)
+# - table_number is 1-based
+# - row_index and col_index are 0-based
+# - use "*" to select entire row, entire column, or entire table
+selections = [
+    (3, 2, 1),     # single cell: Table 3, Row 3, Col 2
+    (4, 1, "*"),   # whole row: Table 4, Row 2
+    (5, "*", 0),   # whole column: Table 5, Col 1
+    (8, "*", "*")  # entire Table 8
+]
+
+# Collect results
+results = []
+
+for (table_num, row_idx, col_idx) in selections:
+    table_index = table_num - 1  # convert to 0-based
+    if 0 <= table_index < len(all_tables):
+        df = all_tables[table_index]
+
+        if row_idx == "*" and col_idx == "*":
+            # Entire table
+            temp = df.copy()
+            temp.insert(0, "Selection", f"Table {table_num} (entire)")
+            results.append(temp)
+
+        elif row_idx == "*" and col_idx != "*":
+            # Entire column
+            if col_idx < len(df.columns):
+                temp = pd.DataFrame(df.iloc[:, col_idx])
+                temp.insert(0, "Selection", f"Table {table_num} (col {col_idx+1})")
+                results.append(temp)
+            else:
+                results.append(pd.DataFrame([[f"Table {table_num}", "Invalid column"]]))
+
+        elif row_idx != "*" and col_idx == "*":
+            # Entire row
+            if row_idx < len(df):
+                temp = pd.DataFrame([df.iloc[row_idx, :].tolist()])
+                temp.insert(0, "Selection", f"Table {table_num} (row {row_idx+1})")
+                results.append(temp)
+            else:
+                results.append(pd.DataFrame([[f"Table {table_num}", "Invalid row"]]))
+
+        else:
+            # Single cell
+            if row_idx < len(df) and col_idx < len(df.columns):
+                value = df.iat[row_idx, col_idx]
+                temp = pd.DataFrame([[f"Table {table_num}", row_idx+1, col_idx+1, value]],
+                                    columns=["Table", "Row", "Column", "Value"])
+                results.append(temp)
+            else:
+                results.append(pd.DataFrame([[f"Table {table_num}", "Invalid cell"]]))
+
+    else:
+        results.append(pd.DataFrame([[f"Table {table_num}", "Invalid table"]]))
+
+# ✅ Combine everything and export
+if results:
+    final_df = pd.concat(results, ignore_index=True)
+    final_df.to_excel(excel_file, sheet_name="Custom_Selection", index=False)
+    print(f"Selections saved to {excel_file}")
+else:
+    print("No valid selections.")
+
+
+
