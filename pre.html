@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Preview HTML</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        iframe {
+            width: 90%;
+            height: 500px;
+            border: 2px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        #columns-section {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding: 10px;
+            background: #fff;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            max-width: 95%;
+        }
+
+        .column-block {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ddd;
+            padding: 10px;
+            min-width: 200px;
+            background: #fefefe;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .column-block label {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .column-input {
+            margin-bottom: 5px;
+            padding: 6px;
+            width: 100%;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        .value-block {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .edit-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            font-size: 12px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .edit-btn:hover {
+            background: #0056b3;
+        }
+
+        .selected-column {
+            border: 2px solid red !important;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+
+    <iframe id="html-frame"></iframe>
+
+    <div id="columns-section"></div>
+
+    <button onclick="addColumn()">Add New Column</button>
+    <button onclick="finishSelection()">Finish and Extract</button>
+
+    <script>
+        let file_url = "{{ file_url }}";
+        let filename = "{{ filename }}";
+        let columnLabels = {{ columns|tojson }} || [];
+        let lastSelectedColumn = null;
+
+        let iframe = document.getElementById("html-frame");
+        iframe.src = file_url;
+
+        function loadColumnInputs() {
+            let container = document.getElementById("columns-section");
+            container.innerHTML = "";
+
+            columnLabels.forEach(label => {
+                let block = document.createElement("div");
+                block.className = "column-block";
+                block.id = `column-${label}`;
+
+                let labelEl = document.createElement("label");
+                labelEl.innerText = label;
+                block.appendChild(labelEl);
+
+                block.addEventListener("click", function () {
+                    selectColumn(label);
+                });
+
+                let input = document.createElement("input");
+                input.type = "text";
+                input.className = "column-input";
+                input.setAttribute("data-column", label);
+
+                block.appendChild(input);
+                container.appendChild(block);
+            });
+        }
+
+        function selectColumn(label) {
+            lastSelectedColumn = label;
+            document.querySelectorAll(".column-block").forEach(block => block.classList.remove("selected-column"));
+            document.getElementById(`column-${label}`).classList.add("selected-column");
+        }
+
+        function addValueToColumn(column, value) {
+            if (!value.trim()) return;
+
+            let block = document.getElementById(`column-${column}`);
+            let valueDiv = document.createElement("div");
+            valueDiv.className = "value-block";
+
+            let span = document.createElement("span");
+            span.innerText = value;
+
+            let editBtn = document.createElement("button");
+            editBtn.className = "edit-btn";
+            editBtn.innerText = "Edit";
+            editBtn.onclick = () => editValue(span);
+
+            valueDiv.appendChild(span);
+            valueDiv.appendChild(editBtn);
+            block.appendChild(valueDiv);
+        }
+
+        function editValue(span) {
+            let currentVal = span.innerText;
+            let newVal = prompt("Edit value:", currentVal);
+            if (newVal !== null) span.innerText = newVal;
+        }
+
+        function addColumn() {
+            let newLabel = prompt("Enter new column name:");
+            if (!newLabel) return;
+            columnLabels.push(newLabel);
+            loadColumnInputs();
+        }
+
+        iframe.addEventListener("load", function () {
+            loadColumnInputs();
+            let iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.addEventListener("dblclick", function (e) {
+                if (!lastSelectedColumn) {
+                    alert("Please select a column first!");
+                    return;
+                }
+                let selection = iframe.contentWindow.getSelection();
+                let value = selection.toString().trim();
+                if (value) {
+                    addValueToColumn(lastSelectedColumn, value);
+                }
+            });
+        });
+
+        function finishSelection() {
+            let form = document.createElement("form");
+            form.method = "POST";
+            form.action = "/extract";
+
+            let input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "files";
+            input.value = filename;
+            form.appendChild(input);
+
+            let allColumnData = {};
+            columnLabels.forEach(label => {
+                let block = document.getElementById(`column-${label}`);
+                let values = Array.from(block.querySelectorAll(".value-block span")).map(span => span.innerText);
+                allColumnData[label] = values;
+            });
+
+            let dataInput = document.createElement("input");
+            dataInput.type = "hidden";
+            dataInput.name = "pasted_data";
+            dataInput.value = JSON.stringify(allColumnData);
+            form.appendChild(dataInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
+</body>
+</html>
